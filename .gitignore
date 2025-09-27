@@ -3,3 +3,4 @@ payload/
 ref/
 venv/
 payload.zip
+config.json
