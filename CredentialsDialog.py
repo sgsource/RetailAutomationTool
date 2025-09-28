@@ -105,6 +105,11 @@ class CredentialsDialog(QDialog):
         self.accept()
 
 def ensure_credentials(config: ConfigManager, parent=None):
+    """
+    Show credentials dialog and enforce rules:
+    - First run: X quits app, Cancel shows warning only if fields incomplete.
+    - Later runs: Cancel just closes dialog, fields already exist.
+    """
     first_run = not all(config.get(f) for f in REQUIRED_FIELDS)
 
     while True:
@@ -112,19 +117,24 @@ def ensure_credentials(config: ConfigManager, parent=None):
         dlg.set_first_run(first_run)
         result = dlg.exec()
 
+        # Re-check fields after dialog closes
+        complete = all(config.get(f) for f in REQUIRED_FIELDS)
+
         if result == QDialog.DialogCode.Accepted:
+            # User saved info
             first_run = False
-            continue  # check again if all fields are now set
+            if complete:
+                return True
+            # if not complete, loop again
 
         elif result == QDialog.DialogCode.Rejected:
-            if first_run:
-                # User clicked Cancel
+            if first_run and not complete:
+                # User clicked Cancel on first run but fields incomplete
                 QMessageBox.warning(
                     parent, "Missing Data",
                     "All fields must be set before using the app."
                 )
                 continue
             else:
-                # Later runs: Cancel closes dialog
-                return True
-
+                # Either first run but complete, or later runs: just exit/return
+                return complete
