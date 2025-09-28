@@ -6,18 +6,20 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 from ConfigManager import ConfigManager
-from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.exceptions import InvalidSignature
+
+from verify_payload import verify_payload
 
 class ConfigApp(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Config Checker")
-        self.setFixedSize(220, 160)
+        self.setMinimumSize(300, 200)
 
-        # Verify public key & payload on startup
-        self.verify_payload()
+        # On startup, ensure app terminates if I disallow it
+        allowed, msg = verify_payload()
+        if not allowed:
+            QMessageBox.critical(self, "Error", msg)
+            sys.exit(1)
 
         self.config = ConfigManager()
 
@@ -53,31 +55,6 @@ class ConfigApp(QWidget):
 
         # Initial display
         self.update_status_labels()
-
-    def verify_payload(self):
-        url = "https://singular-snickerdoodle-de09f9.netlify.app/payload.json"
-        try:
-            r = requests.get(url, timeout=5)
-            data = r.json()
-            payload_bytes = base64.b64decode(data["payload"])
-            signature = base64.b64decode(data["sig"])
-
-            public_key_pem = b"""-----BEGIN PUBLIC KEY-----
-MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEdoUvlLjynhTV+MUNR6MhuBofhAfV
-tzviR3OO8ugwD2m1V28R8NxJfhDrf76q36Fn4wCN7WSMDmbTfKB8/hB08A==
------END PUBLIC KEY-----"""
-
-            public_key = serialization.load_pem_public_key(public_key_pem)
-            public_key.verify(signature, payload_bytes, ec.ECDSA(hashes.SHA256()))
-
-            payload = json.loads(payload_bytes)
-            return payload.get("allow", False)
-        except requests.RequestException:
-            QMessageBox.critical(self, "Error", "The app has been permanently terminated by the developer. Thank you for using the app.")
-            sys.exit(1)
-        except Exception:
-            QMessageBox.critical(self, "Error", "Signature verification failed! App will exit.")
-            sys.exit(1)
 
     def update_status_labels(self):
         self.set_status_label(self.status_yid, "yid")
