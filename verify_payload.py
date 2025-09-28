@@ -1,11 +1,11 @@
-import requests, json, base64
+import json, base64
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import hashes, serialization
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import WebDriverException
 
-def verify_payload(self):
+def verify_payload():
     url = "https://singular-snickerdoodle-de09f9.netlify.app/payload.json"
     try:
         options = webdriver.ChromeOptions()
@@ -31,7 +31,6 @@ tzviR3OO8ugwD2m1V28R8NxJfhDrf76q36Fn4wCN7WSMDmbTfKB8/hB08A==
 
         payload = json.loads(payload_bytes)
 
-        driver.quit()
         _ = payload.get("allow", False)
 
         return True, ''
@@ -41,3 +40,5 @@ tzviR3OO8ugwD2m1V28R8NxJfhDrf76q36Fn4wCN7WSMDmbTfKB8/hB08A==
     except Exception:
         # this should never really happen. public key should always be valid.
         return False, "Signature verification failed! App will exit."
+    finally:
+        driver.quit()

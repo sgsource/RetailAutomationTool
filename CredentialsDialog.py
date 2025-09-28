@@ -4,9 +4,9 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QIntValidator
 from ConfigManager import ConfigManager
+import sys
 
 REQUIRED_FIELDS = ["store_num", "lan_id", "yid", "pwd"]
-
 
 class CredentialsDialog(QDialog):
     def __init__(self, config: ConfigManager):
@@ -62,6 +62,20 @@ class CredentialsDialog(QDialog):
         # Pre-fill existing values except password
         self.load_existing()
 
+        self.first_run = False  # will be set from ensure_credentials
+
+    def set_first_run(self, first_run: bool):
+        self.first_run = first_run
+
+    def closeEvent(self, event):
+        """Handle window X button."""
+        if self.first_run:
+            # Quit app immediately if first run
+            sys.exit(0)
+        else:
+            # Accept normal close
+            event.accept()
+
     def load_existing(self):
         store_num = self.config.get("store_num")
         lan_id = self.config.get("lan_id")
@@ -91,24 +105,26 @@ class CredentialsDialog(QDialog):
         self.accept()
 
 def ensure_credentials(config: ConfigManager, parent=None):
-    """Keep showing dialog until all fields exist and are valid."""
+    first_run = not all(config.get(f) for f in REQUIRED_FIELDS)
+
     while True:
-        ok = True
-        for f in REQUIRED_FIELDS:
-            if not config.get(f):
-                ok = False
-                break
-        if ok:
-            return True
         dlg = CredentialsDialog(config)
-        if dlg.exec() == QDialog.DialogCode.Rejected:
-            # If user cancels but fields are still incomplete, loop again
-            complete = all(config.get(f) for f in REQUIRED_FIELDS)
-            if not complete:
+        dlg.set_first_run(first_run)
+        result = dlg.exec()
+
+        if result == QDialog.DialogCode.Accepted:
+            first_run = False
+            continue  # check again if all fields are now set
+
+        elif result == QDialog.DialogCode.Rejected:
+            if first_run:
+                # User clicked Cancel
                 QMessageBox.warning(
                     parent, "Missing Data",
                     "All fields must be set before using the app."
                 )
                 continue
             else:
+                # Later runs: Cancel closes dialog
                 return True
+
