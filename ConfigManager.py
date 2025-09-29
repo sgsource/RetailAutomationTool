@@ -40,7 +40,3 @@ class ConfigManager:
             return self._fernet.decrypt(encrypted_data[key].encode()).decode()
         except Exception:
             return False
-
-# c = ConfigManager()
-# print(c.set('usr', 'myname'))
-# print(c.get('user'))

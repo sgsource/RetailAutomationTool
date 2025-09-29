@@ -36,7 +36,7 @@ tzviR3OO8ugwD2m1V28R8NxJfhDrf76q36Fn4wCN7WSMDmbTfKB8/hB08A==
         return True, ''
     except WebDriverException as e:
         # if url is no longer accessible
-        return False, "The app has been permanently terminated by the developer. Thank you for using the app."
+        return False, "Cannot verify app validity. App will exit."
     except Exception:
         # this should never really happen. public key should always be valid.
         return False, "Signature verification failed! App will exit."

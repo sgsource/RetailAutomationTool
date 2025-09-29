@@ -21,8 +21,8 @@ class Planogram:
             start_page = self._get_start_page()
 
             # extract crc -> num
-            self.df = self._parse_data(start_page)
-            return self.df
+            self.pog_df = self._parse_data(start_page)
+            return self.pog_df
         except Exception as e:
             self._reset()
             raise RuntimeError(f"Failed to load {path}: {e}")
@@ -44,10 +44,10 @@ class Planogram:
     def _reset(self):
         """Reset internal state."""
         self.reader = None
-        self.df = pd.DataFrame()
+        self.pog_df = pd.DataFrame()
     
     def get_num_items(self) -> int:
-        return 0 if self.df.empty else len(self.df)
+        return 0 if self.pog_df.empty else len(self.pog_df)
 
     @staticmethod
     def _check_reader(f):
@@ -83,6 +83,7 @@ class Planogram:
         """Parse item data into a DataFrame with string index (CRC) and integer NUM column."""
         nums = []
         crcs = []
+        upcs = []
 
         for page_num in range(start_page, len(self.reader.pages)):
             page = self.reader.pages[page_num]
@@ -90,11 +91,19 @@ class Planogram:
 
             matches = re.findall(r"\b(\d{1,4})\s+(\d{7})\b", text)
 
+            upc_matches = re.findall(r"\b\d{12}\b", text)
+
+            last = ""
+            for upc in upc_matches:
+                if last != upc:
+                    upcs.append(upc)
+                    last = upc
+
             for num_str, crc in matches:
                 nums.append(int(num_str))
                 crcs.append(crc)
 
-        df = pd.DataFrame({'NUM': nums}, index=pd.Index(crcs, name="CRC", dtype='str'))
+        df = pd.DataFrame({'Num': nums, 'UPC': upcs[:len(nums)]}, index=pd.Index(crcs, name="CRC", dtype='str'))
         if not df.index.is_unique:
             raise RuntimeError("Duplicate CRC codes found in PDF.")
         return df

@@ -22,16 +22,11 @@ class Undef:
 class UnitFactory:
     @staticmethod
     def create(text: str):
-        match text.lower():
-            case _ if (m := re.fullmatch(r"(\d+)\s*ft", text)):
+        lower = text.lower()
+        match lower:
+            case _ if (m := re.fullmatch(r"(\d+)\s*ft", lower)):
                 return Feet(m.group(1))
-            case _ if (m := re.fullmatch(r"set\s+(\d+)", text)):
+            case _ if (m := re.fullmatch(r"set\s+(\d+)", lower)):
                 return Set(m.group(1))
             case _:
-                return Undef(text)
-
-# Example usage
-examples = ["12 ft", "set 1", "unknown format"]
-for ex in examples:
-    obj = UnitFactory.create(ex)
-    print(obj, type(obj))
+                return Undef(lower)

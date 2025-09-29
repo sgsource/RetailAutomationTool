@@ -106,35 +106,37 @@ class CredentialsDialog(QDialog):
 
 def ensure_credentials(config: ConfigManager, parent=None):
     """
-    Show credentials dialog and enforce rules:
-    - First run: X quits app, Cancel shows warning only if fields incomplete.
-    - Later runs: Cancel just closes dialog, fields already exist.
+    Ensure all credentials are filled. 
+    - If all fields exist: do nothing.
+    - If none exist: prompt user to fill them.
+    - Cancel loops only if fields incomplete.
     """
-    first_run = not all(config.get(f) for f in REQUIRED_FIELDS)
+    # Check if all or none are filled
+    filled = [bool(config.get(f)) for f in REQUIRED_FIELDS]
+    if all(filled):
+        return True  # everything exists, no prompt
+    else:
+        complete = False  # none or incomplete
 
-    while True:
+    while not complete:
         dlg = CredentialsDialog(config)
-        dlg.set_first_run(first_run)
+        dlg.set_first_run(True)  # only first run allows X to quit
         result = dlg.exec()
 
-        # Re-check fields after dialog closes
+        # Check completeness after dialog closes
         complete = all(config.get(f) for f in REQUIRED_FIELDS)
 
-        if result == QDialog.DialogCode.Accepted:
-            # User saved info
-            first_run = False
-            if complete:
-                return True
-            # if not complete, loop again
+        if result == QDialog.DialogCode.Accepted and complete:
+            return True  # user saved all fields
 
         elif result == QDialog.DialogCode.Rejected:
-            if first_run and not complete:
-                # User clicked Cancel on first run but fields incomplete
+            if not complete:
+                # Cancel pressed but fields incomplete
                 QMessageBox.warning(
                     parent, "Missing Data",
                     "All fields must be set before using the app."
                 )
                 continue
             else:
-                # Either first run but complete, or later runs: just exit/return
-                return complete
+                # Cancel pressed and fields exist (later run)
+                return True
